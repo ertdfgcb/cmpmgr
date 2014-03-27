@@ -26,6 +26,10 @@ getFiler() {
 	grep -v '^[[:space:]]*$' 
 }
 
+getPayee() {
+	grep -A7 "payee -->" | grep -v '[[:space:]]$' | grep -v '<' | grep -v '\-\-'
+}
+
 getType() {
 	grep -A1 "<!--.*sub type" | grep "<td" | extractFrom td
 }
@@ -38,9 +42,13 @@ getLine() {
 	echo "$1" | head -$2 | tail -1
 }
 
-getCSV() {
-	header="ID,Date,Status,Filer,Type,Amount"
+getNameCSV() {
 	rows=$(getRows $1)
+	if [ "$2" == "p" ]; then
+		echo "$rows" | getPayee | sed 's/^ *//g'
+		exit
+	fi
+	header="ID,Date,Status,Filer,Type,Amount"
 	ids=$(echo "$rows" | getID)
 	dates=$(echo "$rows" | getDate)
 	status=$(echo "$rows" | getStatus)
@@ -50,10 +58,13 @@ getCSV() {
 	num_rows=$(echo "$ids" | wc -l)
 	echo $header
 	for i in $(seq 1 $num_rows); do
-		echo $(getLine "$ids" $i),$(getLine "$dates" $i),\
+			echo $(getLine "$ids" $i),$(getLine "$dates" $i),\
 $(getLine "$status" $i),$(getLine "$filers" $i),$(getLine "$types" $i),\
 \"$(getLine "$amounts" $i)\"
 	done
+	
 }
 
-getCSV $(./getpage.sh $@)
+getNameCSV $@
+
+
